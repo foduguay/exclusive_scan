@@ -62,9 +62,9 @@ TEST /home/fod/git/exclusive_scan/data/test/test_success_1 PASSED!'
 |:--------:|:---------:|:---------:|:----------:|
 
 
-|-----------|
+|:---------:|
 |Future work|
-|-----------|
+|:---------:|
 
 I need to profile this code, I'm sure we could get a lot of performance gain just by avoiding copies here and there. The naive algorithm has a linear runtime and linear memory footprint. The OpenCL algorithm is a logarithmic strategy where the memory location twice the distance is added at every step. Since every memory location is populated, the algorithm has a runtime of n * lg(n) but runs in parallel, and linear in memory footprint. For the threaded solution, the idea is to devide the problem into 20 sub problems and then stitch the extremities. Runtime for the threaded solution is 2 * (n / 20) + 20 and uses linear memory footprint.
 
