@@ -101,21 +101,21 @@ namespace exclusive_scan_test {
         std::array<TYPE, MAX_SIZE> expected;
 
         auto t_start = std::chrono::high_resolution_clock::now();
-        for(int i=0, n = 32 * 1024 / size; i < n; ++i) {
+        for(int i=0, n = 1024 * 1024 / size; i < n; ++i) {
             naive_exclusive_scan::exclusive_scan(in.data(), expected.data(), MAX_SIZE);
         }
         auto t_end = std::chrono::high_resolution_clock::now();
         std::cout  << std::setw(9) << size << " |" << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |";
 
         t_start = std::chrono::high_resolution_clock::now();
-        for(int i=0, n = 32 * 1024 / size; i < n; ++i) {
+        for(int i=0, n = 1024 * 1024 / size; i < n; ++i) {
             opencl_exclusive_scan::exclusive_scan(in.data(), expected.data(), MAX_SIZE);
         }
         t_end = std::chrono::high_resolution_clock::now();
         std::cout << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |";
 
         t_start = std::chrono::high_resolution_clock::now();
-        for(int i=0, n = 32 * 1024 / size; i < n; ++i) {
+        for(int i=0, n = 1024 * 1024 / size; i < n; ++i) {
             threaded_exclusive_scan::exclusive_scan(in.data(), expected.data(), MAX_SIZE);
         }
         t_end = std::chrono::high_resolution_clock::now();
@@ -123,6 +123,7 @@ namespace exclusive_scan_test {
     }
 
     void chronometer() {
+        std::cout << "          time in milliseconds for computations" << std::endl;
         std::cout << "          -------------------------------------" << std::endl;
         std::cout << "block size|" << std::setw(10) << "naive" << " |" << std::setw(10) << "opencl" << " |" << std::setw(10) << "threads" << " |" << std::endl;
         std::cout << "          -------------------------------------" << std::endl;
@@ -131,6 +132,11 @@ namespace exclusive_scan_test {
         chronometer_type<char, 1024 * 1024>(8 * 1024);
         chronometer_type<char, 1024 * 1024>(16 * 1024);
         chronometer_type<char, 1024 * 1024>(32 * 1024);
+        chronometer_type<char, 1024 * 1024>(64 * 1024);
+        chronometer_type<char, 1024 * 1024>(128 * 1024);
+        chronometer_type<char, 1024 * 1024>(256 * 1024);
+        chronometer_type<char, 1024 * 1024>(512 * 1024);
+        chronometer_type<char, 1024 * 1024>(1024 * 1024);
         std::cout << "          -------------------------------------" << std::endl;
     }
 
