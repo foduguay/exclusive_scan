@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <functional>
@@ -55,9 +56,21 @@ namespace exclusive_scan_test {
         file_serialize<TYPE>(test_name + ".in", in);
         file_serialize<TYPE>(test_name + ".exp", expected);
     }
+
     template<class TYPE>
-    int _generate_successful_test(int length) {
-        int open_number = 1;
+    void _generate_random_vector(int length, std::vector<TYPE>& out) {
+        std::vector<TYPE> in(length);
+        std::random_device rnd_device;
+        std::mt19937 mersenne_engine {rnd_device()};
+        std::uniform_int_distribution<int> dist {0, 1};
+        auto gen = [&dist, &mersenne_engine]() {
+            return dist(mersenne_engine);
+        };
+        std::generate(begin(out), end(out), gen);
+    }
+
+    template<class TYPE>
+    void _conditionally_generate_successful_test(int length, int open_number) {
         std::set<int> done_tests;
         for (const auto & entry : std::filesystem::directory_iterator(BASE_PATH)) {
             auto str = entry.path().string();
@@ -72,29 +85,20 @@ namespace exclusive_scan_test {
         for(auto s: done_tests) {
             std::cout << s << std::endl;
         }
-        while(done_tests.cend() != done_tests.find(open_number)) {
-            ++open_number;
-        }
+        if(done_tests.cend() == done_tests.find(open_number)) {
         std::vector<TYPE> in(length);
-        std::random_device rnd_device;
-        std::mt19937 mersenne_engine {rnd_device()};
-        std::uniform_int_distribution<TYPE> dist {0, 1};
-        auto gen = [&dist, &mersenne_engine]() {
-            return dist(mersenne_engine);
-        };
-        std::generate(begin(in), end(in), gen);
-        std::vector<TYPE> expected(length);
+            _generate_random_vector(length, in);
+            std::vector<TYPE> expected(length);
 
-        // Trust our naive method for generating longer tests
-        naive_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
-        std::string test_name = BASE_PATH + std::string("test_success_") + std::to_string(open_number);
-        _generate_test<TYPE>(test_name, in, expected);
-
-        return open_number;
+            // Trust our naive method for generating longer tests
+            naive_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
+            std::string test_name = BASE_PATH + std::string("test_success_") + std::to_string(open_number);
+            _generate_test<TYPE>(test_name, in, expected);
+        }
     }
 
     void test_all() {
-        _generate_successful_test<int>(1024 * 1024);
+        _conditionally_generate_successful_test<int>(1024 * 1024, 2);
         for (const auto & entry : std::filesystem::directory_iterator(BASE_PATH)) {
             auto str = entry.path().string();
             int last_dot = str.find_last_of(".");
@@ -106,4 +110,48 @@ namespace exclusive_scan_test {
             }
         }
     }
+
+    template<class TYPE>
+    void chronometer_type(int size) {
+        std::vector<TYPE> in(size);
+        _generate_random_vector(size, in);
+        std::vector<TYPE> expected(size);
+
+        auto t_start = std::chrono::high_resolution_clock::now();
+        for(int i=0, n = 32 * 1024 * 1024 / size; i < n; ++i) {
+            naive_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
+        }
+        auto t_end = std::chrono::high_resolution_clock::now();
+        std::cout << "|" << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |";
+
+        t_start = std::chrono::high_resolution_clock::now();
+        for(int i=0, n = 32 * 1024 * 1024 / size; i < n; ++i) {
+            avx_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
+        }
+        t_end = std::chrono::high_resolution_clock::now();
+        std::cout << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |";
+
+        t_start = std::chrono::high_resolution_clock::now();
+        for(int i=0, n = 32 * 1024 * 1024 / size; i < n; ++i) {
+            cuda_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
+        }
+        t_end = std::chrono::high_resolution_clock::now();
+        std::cout << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |" << std::endl;
+    }
+
+    void chronometer() {
+        std::cout << "-------------------------------------" << std::endl;
+        std::cout << "|" << std::setw(10) << "naive" << " |" << std::setw(10) << "avx" << " |" << std::setw(10) << "cuda" << " |" << std::endl;
+        std::cout << "-------------------------------------" << std::endl;
+        for (int size = 32; size <= 32 * 1024 * 1024; size *= 32) {
+            chronometer_type<int8_t>(size);
+            chronometer_type<int16_t>(size);
+            chronometer_type<int32_t>(size);
+            chronometer_type<int64_t>(size);
+            chronometer_type<float>(size);
+            chronometer_type<double>(size);
+        }
+        std::cout << "-------------------------------------" << std::endl;
+    }
+
 }
