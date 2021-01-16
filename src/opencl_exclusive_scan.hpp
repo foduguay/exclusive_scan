@@ -123,10 +123,10 @@ bool exclusive_scan(const IN_TYPE* in, OUT_TYPE* out, int size) {
         assert(ret == CL_SUCCESS);
     }
 
-    ret = clEnqueueWriteBuffer(command_queue, in_mem, CL_TRUE, 0,
+    ret = clEnqueueWriteBuffer(command_queue, in_mem, CL_FALSE, 0,
             size * sizeof(IN_TYPE), in, 0, NULL, NULL);
     assert(ret == CL_SUCCESS);
-    ret = clEnqueueWriteBuffer(command_queue, length, CL_TRUE, 0,
+    ret = clEnqueueWriteBuffer(command_queue, length, CL_FALSE, 0,
             sizeof(int), &size, 0, NULL, NULL);
     assert(ret == CL_SUCCESS);
 
@@ -137,7 +137,7 @@ bool exclusive_scan(const IN_TYPE* in, OUT_TYPE* out, int size) {
     assert(ret == CL_SUCCESS);
     
     for (int jump = 1; jump < size; jump *= 2) {
-        ret = clEnqueueWriteBuffer(command_queue, jump_mem, CL_TRUE, 0,
+        ret = clEnqueueWriteBuffer(command_queue, jump_mem, CL_FALSE, 0,
                 sizeof(int), &jump, 0, NULL, NULL);
         assert(ret == CL_SUCCESS);
         ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, 
