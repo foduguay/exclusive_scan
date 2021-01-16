@@ -29,33 +29,16 @@ namespace exclusive_scan_test {
         {
             std::array<TYPE, MAX_SIZE> out;
             opencl_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
-            std::cout << expected.size() << std::endl;
-            std::cout << out.size() << std::endl;
-            if (success != (out == expected))
-                for(int i=0; i<in.size(); ++i) {
-                    //std::cout << int(i) << " " << int(expected[i]) << " " << int(out[i]) << std::endl;
-                    assertm(success == (expected[i] == out[i]), i);
-                }
             assertm (success == (out == expected), "opencl_exclusive_scan failed");
         }
         {
             std::array<TYPE, MAX_SIZE> out;
             threaded_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
-            if (success != (out == expected))
-                for(int i=0; i<in.size(); ++i) {
-                    //std::cout << int(i) << " " << int(expected[i]) << " " << int(out[i]) << std::endl;
-                    assertm(success == (expected[i] == out[i]), i);
-                }
             assertm (success == (out == expected), "threaded_exclusive_scan failed");
         }
         {
             std::array<TYPE, MAX_SIZE> out;
             naive_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
-            if (success != (out == expected))
-                for(int i=0; i<in.size(); ++i) {
-                    //std::cout << int(i) << " " << int(in[i]) << " " << int(expected[i]) << " " << int(out[i]) << std::endl;
-                    assertm(success == (expected[i] == out[i]), i);
-                }
             assertm (success == (out == expected), "naive_exclusive_scan failed");
         }
         file_serialize<TYPE, MAX_SIZE>(test_name + ".out", expected);
