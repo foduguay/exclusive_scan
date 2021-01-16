@@ -1,3 +1,4 @@
+#include <thread>
 #include "test/test.hpp"
 
 int main(int argc, char** argv) {

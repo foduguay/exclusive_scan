@@ -1,6 +1,7 @@
 // DONT FORGET PRAGMA ONCE
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <chrono>
 #include <cstddef>
@@ -10,7 +11,6 @@
 #include <iterator>
 #include <random>
 #include <set>
-#include <vector>
 #include "io.hpp"
 #include "../exclusive_scan.hpp"
 
@@ -20,93 +20,85 @@
 namespace exclusive_scan_test {
     const std::string BASE_PATH = std::filesystem::current_path().string() + std::string("/data/test/");
 
-    template<class TYPE>
+    template<class TYPE, int MAX_SIZE>
     void _test_type(const std::string& test_name, bool success) {
-        std::vector<TYPE> in;
-        file_deserialize(test_name + ".in", in);
-        std::vector<TYPE> expected;
-        file_deserialize(test_name + ".exp", expected);
+        std::array<TYPE, MAX_SIZE> in;
+        file_deserialize<TYPE, MAX_SIZE>(test_name + ".in", in);
+        std::array<TYPE, MAX_SIZE> expected;
+        file_deserialize<TYPE, MAX_SIZE>(test_name + ".exp", expected);
         {
-            std::vector<TYPE> out(in.size());
-            naive_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
-            assertm (success == (out == expected), "naive_exclusive_scan failed");
-        }
-        {
-            std::vector<TYPE> out(in.size());
+            std::array<TYPE, MAX_SIZE> out;
             opencl_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
+            std::cout << expected.size() << std::endl;
+            std::cout << out.size() << std::endl;
+            if (success != (out == expected))
+                for(int i=0; i<in.size(); ++i) {
+                    //std::cout << int(i) << " " << int(expected[i]) << " " << int(out[i]) << std::endl;
+                    assertm(success == (expected[i] == out[i]), i);
+                }
             assertm (success == (out == expected), "opencl_exclusive_scan failed");
         }
         {
-            std::vector<TYPE> out(in.size());
-            cuda_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
-            assertm (success == (out == expected), "cuda_exclusive_scan failed");
+            std::array<TYPE, MAX_SIZE> out;
+            threaded_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
+            if (success != (out == expected))
+                for(int i=0; i<in.size(); ++i) {
+                    //std::cout << int(i) << " " << int(expected[i]) << " " << int(out[i]) << std::endl;
+                    assertm(success == (expected[i] == out[i]), i);
+                }
+            assertm (success == (out == expected), "threaded_exclusive_scan failed");
         }
-        file_serialize(test_name + ".out", expected);
+        {
+            std::array<TYPE, MAX_SIZE> out;
+            naive_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
+            if (success != (out == expected))
+                for(int i=0; i<in.size(); ++i) {
+                    //std::cout << int(i) << " " << int(in[i]) << " " << int(expected[i]) << " " << int(out[i]) << std::endl;
+                    assertm(success == (expected[i] == out[i]), i);
+                }
+            assertm (success == (out == expected), "naive_exclusive_scan failed");
+        }
+        file_serialize<TYPE, MAX_SIZE>(test_name + ".out", expected);
     }
+    template<int MAX_SIZE>
     void _test_all_types(const std::string& test_name, bool success) {
         std::cout << "RUNNING " + test_name << std::endl;
-        std::cout << "__u_char__" << std::endl;
-        _test_type<u_char>(test_name, success);
-        std::cout << "__u_int__" << std::endl;
-        _test_type<u_int>(test_name, success);
         std::cout << "__char__" << std::endl;
-        _test_type<char>(test_name, success);
-        std::cout << "__int__" << std::endl;
-        _test_type<int>(test_name, success);
-        std::cout << "__int64_t__" << std::endl;
-        _test_type<int64_t>(test_name, success);
-        std::cout << "__double__" << std::endl;
-        _test_type<double>(test_name, success);
+        _test_type<char, MAX_SIZE>(test_name, success);
         std::cout << "TEST " << test_name << " PASSED!" << std::endl << std::endl;
     }
-    template<class TYPE>
-    void _generate_test(const std::string& test_name, const std::vector<TYPE>& in, const std::vector<TYPE>& expected) {
-        file_serialize<TYPE>(test_name + ".in", in);
-        file_serialize<TYPE>(test_name + ".exp", expected);
+    template<class TYPE, int MAX_SIZE>
+    void _generate_test(const std::string& test_name, const std::array<TYPE, MAX_SIZE>& in, const std::array<TYPE, MAX_SIZE>& expected) {
+        file_serialize<TYPE, MAX_SIZE>(test_name + ".in", in);
+        file_serialize<TYPE, MAX_SIZE>(test_name + ".exp", expected);
     }
 
-    template<class TYPE>
-    void _generate_random_vector(int length, std::vector<TYPE>& out) {
-        std::vector<TYPE> in(length);
+    template<class TYPE, int MAX_SIZE>
+    void _generate_random_array(std::array<TYPE, MAX_SIZE>& out) {
         std::random_device rnd_device;
         std::mt19937 mersenne_engine {rnd_device()};
-        std::uniform_int_distribution<int> dist {0, 1};
+        std::uniform_int_distribution<char> dist {0, 1};
         auto gen = [&dist, &mersenne_engine]() {
             return dist(mersenne_engine);
         };
         std::generate(begin(out), end(out), gen);
     }
 
-    template<class TYPE>
-    void _conditionally_generate_successful_test(int length, int open_number) {
-        std::set<int> done_tests;
-        for (const auto & entry : std::filesystem::directory_iterator(BASE_PATH)) {
-            auto str = entry.path().string();
-            int last_dot = str.find_last_of(".");
-            int last_underscore = str.find_last_of("_");
-            bool expected_success = (std::string::npos != str.find("success"));
-            if (expected_success) {
-                std::string s = str.substr(last_underscore + 1, last_dot);
-                done_tests.insert(std::stoi(s));
-            }
-        }
-        for(auto s: done_tests) {
-            std::cout << s << std::endl;
-        }
-        if(done_tests.cend() == done_tests.find(open_number)) {
-        std::vector<TYPE> in(length);
-            _generate_random_vector(length, in);
-            std::vector<TYPE> expected(length);
+    template<class TYPE, int MAX_SIZE>
+    void _conditionally_generate_successful_test(int open_number) {
+        std::array<TYPE, MAX_SIZE> in;
+        _generate_random_array<TYPE, MAX_SIZE>(in);
+        std::array<TYPE, MAX_SIZE> expected;
 
-            // Trust our naive method for generating longer tests
-            naive_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
-            std::string test_name = BASE_PATH + std::string("test_success_") + std::to_string(open_number);
-            _generate_test<TYPE>(test_name, in, expected);
-        }
+        // Trust our naive method for generating longer tests
+        naive_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
+        std::string test_name = BASE_PATH + std::string("test_success_") + std::to_string(open_number);
+        _generate_test<TYPE, MAX_SIZE>(test_name, in, expected);
     }
 
     void test_all() {
-        _conditionally_generate_successful_test<int>(1024 * 1024, 2);
+        _conditionally_generate_successful_test<char, 1024>(1);
+        _conditionally_generate_successful_test<char, 1024>(2);
         for (const auto & entry : std::filesystem::directory_iterator(BASE_PATH)) {
             auto str = entry.path().string();
             int last_dot = str.find_last_of(".");
@@ -114,52 +106,49 @@ namespace exclusive_scan_test {
                 auto test_name = str.substr(0, last_dot);
                 bool expected_success = (std::string::npos != test_name.find("success"));
                 std::cout << test_name << std::endl;
-                _test_all_types(test_name, expected_success);
+                _test_all_types<1024>(test_name, expected_success);
             }
         }
     }
 
-    template<class TYPE>
+    template<class TYPE, int MAX_SIZE>
     void chronometer_type(int size) {
-        std::vector<TYPE> in(size);
-        _generate_random_vector(size, in);
-        std::vector<TYPE> expected(size);
+        std::array<TYPE, MAX_SIZE> in;
+        _generate_random_array<TYPE, MAX_SIZE>(in);
+        std::array<TYPE, MAX_SIZE> expected;
 
         auto t_start = std::chrono::high_resolution_clock::now();
-        for(int i=0, n = 32 * 1024 * 1024 / size; i < n; ++i) {
-            naive_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
+        for(int i=0, n = 32 * 1024 / size; i < n; ++i) {
+            naive_exclusive_scan::exclusive_scan(in.data(), expected.data(), MAX_SIZE);
         }
         auto t_end = std::chrono::high_resolution_clock::now();
-        std::cout << "|" << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |";
+        std::cout  << std::setw(9) << size << " |" << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |";
 
         t_start = std::chrono::high_resolution_clock::now();
-        for(int i=0, n = 32 * 1024 * 1024 / size; i < n; ++i) {
-            opencl_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
+        for(int i=0, n = 32 * 1024 / size; i < n; ++i) {
+            opencl_exclusive_scan::exclusive_scan(in.data(), expected.data(), MAX_SIZE);
         }
         t_end = std::chrono::high_resolution_clock::now();
         std::cout << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |";
 
         t_start = std::chrono::high_resolution_clock::now();
-        for(int i=0, n = 32 * 1024 * 1024 / size; i < n; ++i) {
-            cuda_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
+        for(int i=0, n = 32 * 1024 / size; i < n; ++i) {
+            threaded_exclusive_scan::exclusive_scan(in.data(), expected.data(), MAX_SIZE);
         }
         t_end = std::chrono::high_resolution_clock::now();
         std::cout << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |" << std::endl;
     }
 
     void chronometer() {
-        std::cout << "-------------------------------------" << std::endl;
-        std::cout << "|" << std::setw(10) << "naive" << " |" << std::setw(10) << "opencl" << " |" << std::setw(10) << "cuda" << " |" << std::endl;
-        std::cout << "-------------------------------------" << std::endl;
-        for (int size = 32; size <= 32 * 1024 * 1024; size *= 32) {
-            chronometer_type<int8_t>(size);
-            chronometer_type<int16_t>(size);
-            chronometer_type<int32_t>(size);
-            chronometer_type<int64_t>(size);
-            chronometer_type<float>(size);
-            chronometer_type<double>(size);
-        }
-        std::cout << "-------------------------------------" << std::endl;
+        std::cout << "          -------------------------------------" << std::endl;
+        std::cout << "block size|" << std::setw(10) << "naive" << " |" << std::setw(10) << "opencl" << " |" << std::setw(10) << "cuda" << " |" << std::endl;
+        std::cout << "          -------------------------------------" << std::endl;
+        chronometer_type<char, 1024 * 1024>(1 * 1024);
+        chronometer_type<char, 1024 * 1024>(4 * 1024);
+        chronometer_type<char, 1024 * 1024>(8 * 1024);
+        chronometer_type<char, 1024 * 1024>(16 * 1024);
+        chronometer_type<char, 1024 * 1024>(32 * 1024);
+        std::cout << "          -------------------------------------" << std::endl;
     }
 
 }
