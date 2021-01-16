@@ -1,3 +1,6 @@
+#ifndef IO_H
+#define IO_H
+
 #include <iostream>
 #include <iterator>
 #include <fstream>
@@ -41,3 +44,5 @@ namespace exclusive_scan_test {
         std::cout << "\n";
     }
 }
+
+#endif // IO_H

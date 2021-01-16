@@ -1,4 +1,5 @@
-// DONT FORGET PRAGMA ONCE
+#ifndef TEST_H
+#define TEST_H
 
 #include <algorithm>
 #include <array>
@@ -141,3 +142,5 @@ namespace exclusive_scan_test {
     }
 
 }
+
+#endif // TEST_H
