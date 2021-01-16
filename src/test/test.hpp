@@ -14,6 +14,9 @@
 #include "io.hpp"
 #include "../exclusive_scan.hpp"
 
+// Use (void) to silent unused warnings.
+#define assertm(exp, msg) assert(((void)msg, exp))
+
 namespace exclusive_scan_test {
     const std::string BASE_PATH = std::filesystem::current_path().string() + std::string("/data/test/");
 
@@ -21,17 +24,22 @@ namespace exclusive_scan_test {
     void _test_type(const std::string& test_name, bool success) {
         std::vector<TYPE> in;
         file_deserialize(test_name + ".in", in);
-        std::vector<TYPE> out = in;
         std::vector<TYPE> expected;
         file_deserialize(test_name + ".exp", expected);
-        naive_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
-        if (success) {
-            assert(out == expected);
-            std::cout << "Equality\n";
+        {
+            std::vector<TYPE> out(in.size());
+            naive_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
+            assertm (success == (out == expected), "naive_exclusive_scan failed");
         }
-        else {
-            assert(out != expected);
-            std::cout << "Inequality\n";
+        {
+            std::vector<TYPE> out(in.size());
+            avx_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
+            assertm (success == (out == expected), "avx_exclusive_scan failed");
+        }
+        {
+            std::vector<TYPE> out(in.size());
+            cuda_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
+            assertm (success == (out == expected), "cuda_exclusive_scan failed");
         }
         file_serialize(test_name + ".out", expected);
     }
