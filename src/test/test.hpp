@@ -141,7 +141,7 @@ namespace exclusive_scan_test {
 
     void chronometer() {
         std::cout << "          -------------------------------------" << std::endl;
-        std::cout << "block size|" << std::setw(10) << "naive" << " |" << std::setw(10) << "opencl" << " |" << std::setw(10) << "cuda" << " |" << std::endl;
+        std::cout << "block size|" << std::setw(10) << "naive" << " |" << std::setw(10) << "opencl" << " |" << std::setw(10) << "threads" << " |" << std::endl;
         std::cout << "          -------------------------------------" << std::endl;
         chronometer_type<char, 1024 * 1024>(1 * 1024);
         chronometer_type<char, 1024 * 1024>(4 * 1024);
