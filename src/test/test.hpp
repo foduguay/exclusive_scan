@@ -81,8 +81,8 @@ namespace exclusive_scan_test {
     }
 
     void test_all() {
-        _conditionally_generate_successful_test<char, 1024>(1);
-        _conditionally_generate_successful_test<char, 1024>(2);
+        //_conditionally_generate_successful_test<char, 1024>(1);
+        //_conditionally_generate_successful_test<char, 1024>(2);
         for (const auto & entry : std::filesystem::directory_iterator(BASE_PATH)) {
             auto str = entry.path().string();
             int last_dot = str.find_last_of(".");
