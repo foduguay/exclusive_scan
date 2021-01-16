@@ -2,9 +2,9 @@
 An exclusive scan takes as input an array of size n and output of the same size.
 
 # to run the bench test
-## git clone https://github.com/foduguay/exclusive_scan.git
-## make
-## ./exclusive_scan.out
+### git clone https://github.com/foduguay/exclusive_scan.git
+### make
+### ./exclusive_scan.out
 
 '/home/fod/git/exclusive_scan/data/test/test_fail_2
 RUNNING /home/fod/git/exclusive_scan/data/test/test_fail_2
@@ -44,10 +44,11 @@ __char__
 =>/home/fod/git/exclusive_scan/data/test/test_success_1.out: wrote 1024 numbers
 TEST /home/fod/git/exclusive_scan/data/test/test_success_1 PASSED!'
 
-|          time in milliseconds for computations
-|          -------------------------------------
+|----------------------------------------------|
+|          |computation time in milliseconds   |
+|----------|-----------------------------------|
 |block size|     naive |    opencl |   threads |
-|          -------------------------------------
+|----------|-----------------------------------|
 |     1024 |   1892.05 |   1159.16 |   1200.15 |
 |     4096 |    507.18 |    271.71 |    305.90 |
 |     8192 |    240.38 |    138.02 |    147.92 |
@@ -58,12 +59,12 @@ TEST /home/fod/git/exclusive_scan/data/test/test_success_1 PASSED!'
 |   262144 |      8.00 |      4.36 |      5.51 |
 |   524288 |      3.88 |      2.24 |      2.66 |
 |  1048576 |      1.90 |      1.14 |      1.37 |
-          -------------------------------------
+|----------|-----------|-----------|-----------|
 
 
-/-----------\
+|-----------|
 |Future work|
-\-----------/
+|-----------|
 
 I need to profile this code, I'm sure we could get a lot of performance gain just by avoiding copies here and there. The naive algorithm has a linear runtime and linear memory footprint. The OpenCL algorithm is a logarithmic strategy where the memory location twice the distance is added at every step. Since every memory location is populated, the algorithm has a runtime of n * lg(n) but runs in parallel, and linear in memory footprint. For the threaded solution, the idea is to devide the problem into 20 sub problems and then stitch the extremities. Runtime for the threaded solution is 2 * (n / 20) + 20 and uses linear memory footprint.
 
