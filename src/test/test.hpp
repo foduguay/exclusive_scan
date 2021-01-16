@@ -33,8 +33,8 @@ namespace exclusive_scan_test {
         }
         {
             std::vector<TYPE> out(in.size());
-            avx_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
-            assertm (success == (out == expected), "avx_exclusive_scan failed");
+            opencl_exclusive_scan::exclusive_scan(in.data(), out.data(), in.size());
+            assertm (success == (out == expected), "opencl_exclusive_scan failed");
         }
         {
             std::vector<TYPE> out(in.size());
@@ -134,7 +134,7 @@ namespace exclusive_scan_test {
 
         t_start = std::chrono::high_resolution_clock::now();
         for(int i=0, n = 32 * 1024 * 1024 / size; i < n; ++i) {
-            avx_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
+            opencl_exclusive_scan::exclusive_scan(in.data(), expected.data(), in.size());
         }
         t_end = std::chrono::high_resolution_clock::now();
         std::cout << std::setw(10) << std::fixed << std::setprecision(2) << std::chrono::duration<double, std::milli>(t_end-t_start).count() << " |";
@@ -149,7 +149,7 @@ namespace exclusive_scan_test {
 
     void chronometer() {
         std::cout << "-------------------------------------" << std::endl;
-        std::cout << "|" << std::setw(10) << "naive" << " |" << std::setw(10) << "avx" << " |" << std::setw(10) << "cuda" << " |" << std::endl;
+        std::cout << "|" << std::setw(10) << "naive" << " |" << std::setw(10) << "opencl" << " |" << std::setw(10) << "cuda" << " |" << std::endl;
         std::cout << "-------------------------------------" << std::endl;
         for (int size = 32; size <= 32 * 1024 * 1024; size *= 32) {
             chronometer_type<int8_t>(size);
